@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+
+  --color-forest-950: #08211b;
+  --color-forest-900: #0d3229;
+  --color-forest-850: #0f382f;
+  --color-forest-800: #134237;
+  --color-forest-700: #1a5446;
+  --color-forest-600: #236c5b;
+
+  --color-lime-brand: #a8dc8c;
+  --color-lime-soft: #bcebb4;
+  --color-lime-light: #e3f7db;
+  --color-lime-dark: #7ebd61;
+
+  --color-cream-50: #faf8f3;
+  --color-cream-100: #f6f3eb;
+  --color-cream-200: #efe9dd;
+  --color-cream-300: #ded4c1;
+
+  --color-warm-amber: #d97736;
+  --color-warm-amber-soft: #fff3ea;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f6f3eb;
+  color: #0f382f;
+}
