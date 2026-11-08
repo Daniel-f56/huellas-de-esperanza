@@ -14,7 +14,7 @@
             {{ isEditing ? `Editar a ${form.nombre}` : 'Registrar Nuevo Animal' }}
           </h3>
           <p class="text-xs text-white/75 mt-0.5">
-            Los datos ingresados aparecerán de inmediato en el catálogo público si su estado es "disponible".
+            Los datos ingresados aparecerán de inmediato en el catálogo público.
           </p>
         </div>
 
@@ -126,44 +126,10 @@
               required
               class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm text-[#0f382f] focus:outline-none focus:ring-2 focus:ring-[#0f382f]"
             >
-              <option value="pequeño">Pequeño (&lt; 10 kg)</option>
+              <option value="pequeno">Pequeño (&lt; 10 kg)</option>
               <option value="mediano">Mediano (10 - 25 kg)</option>
               <option value="grande">Grande (&gt; 25 kg)</option>
             </select>
-          </div>
-        </div>
-
-        <!-- Fila 4: Estado -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label for="admin-estado" class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
-              Estado en la Plataforma *
-            </label>
-            <select
-              id="admin-estado"
-              v-model="form.estado"
-              required
-              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm text-[#0f382f] focus:outline-none focus:ring-2 focus:ring-[#0f382f]"
-            >
-              <option value="disponible">🟢 Disponible (visible en catálogo)</option>
-              <option value="en_tratamiento">🟡 En Tratamiento / Cuidados</option>
-              <option value="adoptado">🔵 Adoptado</option>
-            </select>
-            <p class="text-[11px] text-stone-500 mt-1">
-              Predefinido como "disponible" para nuevas mascotas.
-            </p>
-          </div>
-
-          <div v-if="isEditing">
-            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
-              Fecha de Registro
-            </label>
-            <input
-              type="text"
-              disabled
-              :value="formatDate(form.fecha_registro)"
-              class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-100 text-xs text-stone-500 cursor-not-allowed"
-            />
           </div>
         </div>
 

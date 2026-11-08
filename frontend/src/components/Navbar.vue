@@ -26,10 +26,6 @@
             href="#find-a-friend"
             class="hover:text-[#0f382f] transition-colors flex items-center gap-2 py-1 whitespace-nowrap shrink-0 group"
           >
-            <span class="group-hover:text-[#0f382f]">Encuentra un Amigo</span>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#a8dc8c]/45 text-[#0f382f] whitespace-nowrap shrink-0 border border-[#0f382f]/10">
-              8 disponibles
-            </span>
           </a>
 
           <a

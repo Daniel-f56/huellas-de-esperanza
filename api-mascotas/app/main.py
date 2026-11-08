@@ -9,6 +9,7 @@ from app.schemas import (
     MascotaResponse,
     EstadoMascota
 )
+from app.auth import get_current_admin
 
 app = FastAPI(
     title="API de Mascotas",
@@ -58,7 +59,8 @@ def verificar_estado():
 )
 def registrar_mascota(
     datos: MascotaCreate,
-    db: Session = Depends(obtener_db)
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin)
 ):
     nueva_mascota = Mascota(
         nombre=datos.nombre,
@@ -119,7 +121,8 @@ def consultar_mascota(
 def cambiar_estado_mascota(
     mascota_id: int,
     nuevo_estado: EstadoMascota,
-    db: Session = Depends(obtener_db)
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin)
 ):
     mascota = db.query(Mascota).filter(
         Mascota.id == mascota_id
@@ -164,7 +167,8 @@ def cambiar_estado_mascota(
 )
 def adoptar_mascota(
     mascota_id: int,
-    db: Session = Depends(obtener_db)
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin)
 ):
     mascota = db.query(Mascota).filter(
         Mascota.id == mascota_id

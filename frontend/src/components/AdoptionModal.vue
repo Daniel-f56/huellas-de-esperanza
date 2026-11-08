@@ -170,24 +170,31 @@ const form = reactive({
 
 const handleSubmit = () => {
   isSubmitting.value = true
-  setTimeout(() => {
-    isSubmitting.value = false
-    emit('submit-success', {
-      pet: props.pet,
-      applicant: {
-        nombre: form.nombre,
-        correo: form.correo,
-        numero: form.numero,
-        direccion: form.direccion,
-        motivo: form.motivo
-      }
-    })
-    // Resetear formulario
-    form.nombre = ''
-    form.correo = ''
-    form.numero = ''
-    form.direccion = ''
-    form.motivo = ''
-  }, 500)
+
+  emit('submit-success', {
+    pet: props.pet,
+    applicant: {
+      nombre: form.nombre,
+      correo: form.correo,
+      numero: form.numero,
+      direccion: form.direccion,
+      motivo: form.motivo
+    },
+
+    // Se ejecuta cuando la API registra correctamente la solicitud.
+    onSuccess: () => {
+      form.nombre = ''
+      form.correo = ''
+      form.numero = ''
+      form.direccion = ''
+      form.motivo = ''
+      isSubmitting.value = false
+    },
+
+    // Se ejecuta si la API devuelve un error.
+    onError: () => {
+      isSubmitting.value = false
+    }
+  })
 }
 </script>

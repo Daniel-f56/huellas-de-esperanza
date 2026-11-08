@@ -7,6 +7,13 @@ from app.database import SessionLocal
 from app.models import Solicitud
 from app.schemas import SolicitudCreate, SolicitudResponse, EstadoSolicitud
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
+from app.auth import (
+    authenticate_admin,
+    create_access_token,
+    get_current_admin,
+    oauth2_scheme
+)
 
 
 API_MASCOTAS_URL = os.getenv(
@@ -30,6 +37,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/auth/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    if not authenticate_admin(form_data.username, form_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_access_token(form_data.username)
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 
@@ -130,7 +153,9 @@ def registrar_solicitud(
     "/solicitudes",
     response_model=list[SolicitudResponse]
 )
-def listar_solicitudes(db: Session = Depends(obtener_db)):
+def listar_solicitudes(
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin)):
     return db.query(Solicitud).order_by(Solicitud.id).all()
 
 
@@ -141,7 +166,8 @@ def listar_solicitudes(db: Session = Depends(obtener_db)):
 )
 def consultar_solicitud(
     solicitud_id: int,
-    db: Session = Depends(obtener_db)
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin)
 ):
     solicitud = db.query(Solicitud).filter(
         Solicitud.id == solicitud_id
@@ -158,7 +184,9 @@ def consultar_solicitud(
 @app.patch("/solicitudes/{solicitud_id}/aprobar", response_model=SolicitudResponse)
 def aprobar_solicitud(
     solicitud_id: int,
-    db: Session = Depends(obtener_db)
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin),
+    token: str = Depends(oauth2_scheme)
 ):
     # 1. Buscar la solicitud
     solicitud = db.query(Solicitud).filter(
@@ -182,6 +210,9 @@ def aprobar_solicitud(
     try:
         respuesta = httpx.post(
             f"{API_MASCOTAS_URL}/mascotas/{solicitud.mascota_id}/adoptar",
+            headers={
+                "Authorization": f"Bearer {token}"
+            },
             timeout=5.0
         )
 
@@ -229,7 +260,8 @@ def aprobar_solicitud(
 @app.patch("/solicitudes/{solicitud_id}/rechazar", response_model=SolicitudResponse)
 def rechazar_solicitud(
     solicitud_id: int,
-    db: Session = Depends(obtener_db)
+    db: Session = Depends(obtener_db),
+    admin: str = Depends(get_current_admin)
 ):
     # 1. Buscar la solicitud
     solicitud = db.query(Solicitud).filter(

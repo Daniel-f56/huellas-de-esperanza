@@ -7,13 +7,20 @@
     @create-pet="handleCreatePet"
     @update-pet="handleUpdatePet"
     @delete-pet="handleDeletePet"
-    @logout="currentView = 'public'"
+    @refresh-pets="loadPets"
+    @logout="handleLogout"
+  />
+
+  <AdminLogin
+    v-else-if="currentView === 'login'"
+    @back="currentView = 'public'"
+    @login-success="currentView = 'admin'"
   />
 
   <!-- VISTA 2: SITIO WEB PÚBLICO -->
   <div v-else class="min-h-screen flex flex-col bg-[#f6f3eb] text-[#0f382f] relative">
     <!-- Top Global Navbar con acceso al panel admin -->
-    <Navbar @open-admin="currentView = 'admin'" />
+    <Navbar @open-admin="currentView = 'login'" />
 
     <!-- Flujo Principal de Contenidos -->
     <main class="flex-1">
@@ -159,7 +166,7 @@
 
     <!-- Botón Flotante para cambiar al Panel Admin fácilmente -->
     <button
-      @click="currentView = 'admin'"
+      @click="currentView = 'login'"
       type="button"
       class="fixed bottom-6 left-6 z-40 bg-[#0f382f] text-white hover:bg-[#164e41] px-4 py-2.5 rounded-full shadow-2xl border border-[#a8dc8c]/40 text-xs font-bold flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 select-none"
       title="Acceso directo al Panel de Gestión de Mascotas"
@@ -197,148 +204,184 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import Navbar from './components/Navbar.vue'
-import StatsCard from './components/StatsCard.vue'
-import PetShowcase from './components/PetShowcase.vue'
-import AdoptionSteps from './components/AdoptionSteps.vue'
-import SuccessStoryCard from './components/SuccessStoryCard.vue'
-import RescueRehabCard from './components/RescueRehabCard.vue'
-import PartnersCard from './components/PartnersCard.vue'
-import ContactCard from './components/ContactCard.vue'
-import FooterSection from './components/FooterSection.vue'
-import PetDetailModal from './components/PetDetailModal.vue'
-import AdoptionModal from './components/AdoptionModal.vue'
-import ToastNotification from './components/ToastNotification.vue'
-import AdminDashboard from './components/admin/AdminDashboard.vue'
-import { apiService } from './services/api.js'
+  import { ref, onMounted } from 'vue'
+  import Navbar from './components/Navbar.vue'
+  import StatsCard from './components/StatsCard.vue'
+  import PetShowcase from './components/PetShowcase.vue'
+  import AdoptionSteps from './components/AdoptionSteps.vue'
+  import SuccessStoryCard from './components/SuccessStoryCard.vue'
+  import RescueRehabCard from './components/RescueRehabCard.vue'
+  import PartnersCard from './components/PartnersCard.vue'
+  import ContactCard from './components/ContactCard.vue'
+  import FooterSection from './components/FooterSection.vue'
+  import PetDetailModal from './components/PetDetailModal.vue'
+  import AdoptionModal from './components/AdoptionModal.vue'
+  import ToastNotification from './components/ToastNotification.vue'
+  import AdminDashboard from './components/admin/AdminDashboard.vue'
+  import AdminLogin from './components/AdminLogin.vue'
+  import { apiService } from './services/api.js'
 
-// Control de vista: 'public' (sitio web de adopción) o 'admin' (panel administrativo)
-const currentView = ref('public')
-
-const pets = ref([])
-const selectedPet = ref(null)
-const adoptingPet = ref(null)
-
-// Cargar las mascotas desde el servicio centralizado (con persistencia)
-const loadPets = async () => {
-  pets.value = await apiService.getMascotas()
-}
-
-onMounted(() => {
-  loadPets()
-})
-
-// Gestión de favoritos con persistencia en localStorage
-const favorites = ref([])
-try {
-  const savedFavs = localStorage.getItem('huellas_favoritos')
-  if (savedFavs) {
-    favorites.value = JSON.parse(savedFavs)
+  // Control de vista: 'public' (sitio web de adopción) o 'admin' (panel administrativo)
+  const currentView = ref('public')
+  // Cerrar sesión del administrador.
+  const handleLogout = () => {
+    apiService.cerrarSesion()
+    currentView.value = 'public'
   }
-} catch {
-  favorites.value = []
-}
 
-const toggleFavorite = (id) => {
-  if (favorites.value.includes(id)) {
-    favorites.value = favorites.value.filter(item => item !== id)
-  } else {
-    favorites.value.push(id)
+  const pets = ref([])
+  const selectedPet = ref(null)
+  const adoptingPet = ref(null)
+
+
+  // Cargar las mascotas desde la API.
+  const loadPets = async () => {
+    try {
+      pets.value = await apiService.getMascotas()
+    } catch (error) {
+      console.error('Error al cargar las mascotas:', error)
+
+      showToast(
+        'Error de conexión',
+        'No fue posible cargar las mascotas. Verifica que la API de Mascotas esté funcionando.'
+      )
+    }
   }
-  try {
-    localStorage.setItem('huellas_favoritos', JSON.stringify(favorites.value))
-  } catch {
-    // Si localStorage no está disponible
-  }
-}
 
-const toast = ref({
-  show: false,
-  title: '',
-  message: ''
-})
-
-const showToast = (title, message) => {
-  toast.value = {
-    show: true,
-    title,
-    message
-  }
-  setTimeout(() => {
-    toast.value.show = false
-  }, 5000)
-}
-
-const openPetModal = (pet) => {
-  selectedPet.value = pet
-}
-
-const startAdoption = (pet) => {
-  selectedPet.value = null
-  adoptingPet.value = pet
-}
-
-// Operaciones de Administrador (CRUD de Mascotas)
-const handleCreatePet = async (petData) => {
-  const newPet = await apiService.crearMascota(petData)
-  await loadPets()
-  showToast(
-    `¡${newPet.nombre} registrado con éxito!`,
-    `El animal ha sido guardado en la base de datos y ya está visible en el catálogo de adopción.`
-  )
-}
-
-const handleUpdatePet = async ({ id, data }) => {
-  await apiService.actualizarMascota(id, data)
-  await loadPets()
-  showToast(
-    '¡Mascota actualizada!',
-    `Los cambios de ${data.nombre} han sido guardados y sincronizados.`
-  )
-}
-
-const handleDeletePet = async (id) => {
-  await apiService.eliminarMascota(id)
-  await loadPets()
-  showToast(
-    'Mascota eliminada',
-    'El animal ha sido removido del sistema.'
-  )
-}
-
-const handleAdoptionSubmitted = async ({ pet, applicant }) => {
-  adoptingPet.value = null
-
-  await apiService.enviarSolicitudAdopcion({
-    mascota_id: pet.id,
-    mascota_nombre: pet.nombre || pet.name,
-    nombre: applicant.nombre,
-    correo: applicant.correo,
-    numero: applicant.numero,
-    direccion: applicant.direccion,
-    motivo: applicant.motivo
+  onMounted(() => {
+    loadPets()
   })
 
-  showToast(
-    `¡Solicitud registrada para ${pet.nombre || pet.name}!`,
-    `Gracias ${applicant.nombre}, nos comunicaremos contigo al número ${applicant.numero} para continuar con el proceso.`
-  )
-}
-
-const handleMessageSent = async (formData) => {
-  await apiService.enviarMensajeContacto(formData)
-
-  showToast(
-    '¡Mensaje recibido con éxito!',
-    `Gracias por escribirnos, ${formData.name}. Nuestro equipo te responderá a la brevedad.`
-  )
-}
-
-const scrollToCatalog = () => {
-  const el = document.getElementById('find-a-friend')
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth' })
+  // Gestión de favoritos con persistencia en localStorage
+  const favorites = ref([])
+  try {
+    const savedFavs = localStorage.getItem('huellas_favoritos')
+    if (savedFavs) {
+      favorites.value = JSON.parse(savedFavs)
+    }
+  } catch {
+    favorites.value = []
   }
-}
+
+  const toggleFavorite = (id) => {
+    if (favorites.value.includes(id)) {
+      favorites.value = favorites.value.filter(item => item !== id)
+    } else {
+      favorites.value.push(id)
+    }
+    try {
+      localStorage.setItem('huellas_favoritos', JSON.stringify(favorites.value))
+    } catch {
+      // Si localStorage no está disponible
+    }
+  }
+
+  const toast = ref({
+    show: false,
+    title: '',
+    message: ''
+  })
+
+  const showToast = (title, message) => {
+    toast.value = {
+      show: true,
+      title,
+      message
+    }
+    setTimeout(() => {
+      toast.value.show = false
+    }, 5000)
+  }
+
+  const openPetModal = (pet) => {
+    selectedPet.value = pet
+  }
+
+  const startAdoption = (pet) => {
+    selectedPet.value = null
+    adoptingPet.value = pet
+  }
+
+  // Operaciones de Administrador (CRUD de Mascotas)
+  const handleCreatePet = async (petData) => {
+    const newPet = await apiService.crearMascota(petData)
+    await loadPets()
+    showToast(
+      `¡${newPet.nombre} registrado con éxito!`,
+      `El animal ha sido guardado en la base de datos y ya está visible en el catálogo de adopción.`
+    )
+  }
+
+  const handleUpdatePet = async ({ id, data }) => {
+    await apiService.actualizarMascota(id, data)
+    await loadPets()
+    showToast(
+      '¡Mascota actualizada!',
+      `Los cambios de ${data.nombre} han sido guardados y sincronizados.`
+    )
+  }
+
+  const handleDeletePet = async (id) => {
+    await apiService.eliminarMascota(id)
+    await loadPets()
+    showToast(
+      'Mascota marcada como no disponible',
+      'El registro se conservó en la base de datos y la mascota ya no aparecerá en el catálogo público.'
+    )
+  }
+
+
+  const handleAdoptionSubmitted = async ({
+    pet,
+    applicant,
+    onSuccess,
+    onError
+  }) => {
+    try {
+      await apiService.enviarSolicitudAdopcion({
+        mascota_id: pet.id,
+        nombre_solicitante: applicant.nombre,
+        correo: applicant.correo,
+        telefono: applicant.numero,
+        direccion: applicant.direccion,
+        motivo: applicant.motivo
+      })
+
+      // La API confirmó que la solicitud fue registrada.
+      onSuccess()
+      adoptingPet.value = null
+
+      showToast(
+        `¡Solicitud registrada para ${pet.nombre || pet.name}!`,
+        `Gracias ${applicant.nombre}, nos comunicaremos contigo al número ${applicant.numero} para continuar con el proceso.`
+      )
+    } catch (error) {
+      console.error('Error al registrar la solicitud:', error)
+
+      // Permite volver a intentar el envío sin cerrar el modal.
+      onError()
+
+      showToast(
+        'No se pudo registrar la solicitud',
+        error.message || 'Ocurrió un error al comunicarse con el servicio de adopciones.'
+      )
+    }
+  }
+
+
+  const handleMessageSent = async (formData) => {
+    await apiService.enviarMensajeContacto(formData)
+
+    showToast(
+      '¡Mensaje recibido con éxito!',
+      `Gracias por escribirnos, ${formData.name}. Nuestro equipo te responderá a la brevedad.`
+    )
+  }
+
+  const scrollToCatalog = () => {
+    const el = document.getElementById('find-a-friend')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 </script>
