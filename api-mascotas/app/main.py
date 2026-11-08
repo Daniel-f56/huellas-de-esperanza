@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, status, Depends
 from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import SessionLocal
 from app.models import Mascota
@@ -13,6 +14,17 @@ app = FastAPI(
     title="API de Mascotas",
     description="Servicio encargado de gestionar las mascotas disponibles para adopción de la Fundación Huellas de Esperanza.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -115,8 +127,19 @@ def cambiar_estado_mascota(
 
     if mascota is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail="La mascota no fue encontrada"
+    )
+
+    # Impedir que una mascota adoptada vuelva a otro estado
+    if (
+            mascota.estado == EstadoMascota.ADOPTADO.value
+    and nuevo_estado != EstadoMascota.ADOPTADO
+    ):
+        
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede modificar el estado de una mascota que ya fue adoptada"
         )
 
     mascota.estado = nuevo_estado.value
